@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "simple-demo.fullname" . }}
+  labels:
+    {{- include "simple-demo.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "simple-demo.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "simple-demo.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.db.name }}
+          image: "{{ .Values.db.repository }}:{{ .Values.db.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.db.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.db.containerPort }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.secret.db.name }}
+          volumeMounts:
+            - mountPath: {{ .Values.db.volumeMount }}
+              name: {{ .Values.pv.name }}
+        - name: {{ .Values.app.name }}
+          image: "{{ .Values.app.repository }}:{{ .Values.app.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.app.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.app.containerPort }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.secret.app.name }}
+      volumes:
+        - name: {{ .Values.pv.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.name }}
+
